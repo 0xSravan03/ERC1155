@@ -1,5 +1,5 @@
 const { ethers, getNamedAccounts, deployments } = require("hardhat");
-const { assert } = require("chai");
+const { assert, expect } = require("chai");
 
 describe("MyToken", function () {
   let Token;
@@ -13,5 +13,13 @@ describe("MyToken", function () {
     await tx.wait(1);
     const balance = await Token.balanceOf(tester, 1);
     assert.equal(balance.toString(), 5);
+  });
+
+  it("shouldn't able to mint more than maxsupply", async function () {
+    await expect(
+      Token.mint(1, 99, {
+        value: ethers.utils.parseEther(`${0.01 * 99}`),
+      })
+    ).to.be.revertedWithCustomError(Token, "SupplyLimitExceeded"); // reverting with custom error
   });
 });

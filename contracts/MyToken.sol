@@ -8,11 +8,13 @@ import "@openzeppelin/contracts/token/ERC1155/extensions/ERC1155Supply.sol";
 
 contract MyToken is ERC1155, Ownable, Pausable, ERC1155Supply {
     uint256 public constant s_mintPrice = 0.01 ether;
+    uint256 public constant s_maxSupply = 100;
 
     constructor(string memory URI) ERC1155(URI) {}
 
     // custom Errors
-    error MintPriceError(uint256 price);
+    error MintPriceError(uint256 mintPrice);
+    error SupplyLimitExceeded(uint256 totalSupply);
 
     function setURI(string memory newURI) public onlyOwner {
         _setURI(newURI);
@@ -30,6 +32,9 @@ contract MyToken is ERC1155, Ownable, Pausable, ERC1155Supply {
     function mint(uint256 id, uint256 amount) public payable {
         if (msg.value != (s_mintPrice * amount)) {
             revert MintPriceError(msg.value);
+        }
+        if (totalSupply(id) + amount > s_maxSupply) {
+            revert SupplyLimitExceeded(s_maxSupply);
         }
         _mint(msg.sender, id, amount, "");
     }

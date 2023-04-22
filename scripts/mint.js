@@ -1,7 +1,7 @@
 const { ethers, getNamedAccounts } = require("hardhat");
 
 const tokenId = 1;
-const amount = 5;
+const amount = 1;
 
 async function mint(tokenId, amount) {
   const { tester } = await getNamedAccounts();
