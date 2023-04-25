@@ -6,8 +6,9 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/token/ERC1155/extensions/ERC1155Supply.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
+import "@openzeppelin/contracts/finance/PaymentSplitter.sol";
 
-contract MyToken is ERC1155, Ownable, Pausable, ERC1155Supply {
+contract MyToken is ERC1155, Ownable, Pausable, ERC1155Supply, PaymentSplitter {
     uint256 public constant s_mintPrice = 0.01 ether;
     uint256 public constant s_allowlistMintPrice = 0.001 ether;
     uint256 public constant s_maxSupply = 50;
@@ -23,7 +24,11 @@ contract MyToken is ERC1155, Ownable, Pausable, ERC1155Supply {
 
     AllowListStatus private status;
 
-    constructor(string memory URI) ERC1155(URI) {}
+    constructor(
+        string memory URI,
+        address[] memory payees_,
+        uint256[] memory shares_
+    ) ERC1155(URI) PaymentSplitter(payees_, shares_) {}
 
     // custom Errors
     error MintPriceError(uint256 mintPrice);
