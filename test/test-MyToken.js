@@ -29,4 +29,15 @@ describe("MyToken", function () {
     const result = await Token.uri(1);
     assert.equal(expectedURI, result);
   });
+
+  it("owner should able to withdraw eth from contract", async function () {
+    const { deployer } = await getNamedAccounts();
+    const newToken = await ethers.getContract("MyToken", deployer);
+    const tx = await newToken.withdraw();
+    await tx.wait();
+    assert.equal(
+      (await ethers.provider.getBalance(newToken.address)).toString(),
+      "0"
+    );
+  });
 });

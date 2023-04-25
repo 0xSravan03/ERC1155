@@ -9,7 +9,19 @@ import "@openzeppelin/contracts/utils/Strings.sol";
 
 contract MyToken is ERC1155, Ownable, Pausable, ERC1155Supply {
     uint256 public constant s_mintPrice = 0.01 ether;
-    uint256 public constant s_maxSupply = 100;
+    uint256 public constant s_allowlistMintPrice = 0.001 ether;
+    uint256 public constant s_maxSupply = 50;
+    mapping(address => bool) public allowList;
+
+    enum AllowListStatus {
+        CLOSED,
+        OPEN
+    }
+
+    // Initial public mint status
+    bool public publicMintOpen = false;
+
+    AllowListStatus private status;
 
     constructor(string memory URI) ERC1155(URI) {}
 
@@ -30,11 +42,75 @@ contract MyToken is ERC1155, Ownable, Pausable, ERC1155Supply {
         _unpause();
     }
 
+    function openAllowListMint() external onlyOwner {
+        status = AllowListStatus.OPEN;
+    }
+
+    function closeAllowListMint() external onlyOwner {
+        status = AllowListStatus.CLOSED;
+    }
+
+    function openPublicMint() external onlyOwner {
+        publicMintOpen = true;
+    }
+
+    function addAllowList(address _address) external onlyOwner {
+        allowList[_address] = true;
+    }
+
+    function addBatchAllowList(
+        address[] calldata _addresses
+    ) external onlyOwner {
+        for (uint256 i = 0; i < _addresses.length; i++) {
+            allowList[_addresses[i]] = true;
+        }
+    }
+
+    function revokeAllowList(address _address) external onlyOwner {
+        allowList[_address] = false;
+    }
+
+    function revokeBatchAllowList(
+        address[] calldata _addresses
+    ) external onlyOwner {
+        for (uint256 i = 0; i < _addresses.length; i++) {
+            allowList[_addresses[i]] = false;
+        }
+    }
+
     // Anyone can mint the token
-    function mint(uint256 id, uint256 amount) public payable {
+    function publicMint(uint256 id, uint256 amount) public payable {
+        require(
+            (status == AllowListStatus.CLOSED) && publicMintOpen,
+            "PUBLIC_MINT_NOT_OPENED"
+        );
         if (msg.value != (s_mintPrice * amount)) {
             revert MintPriceError(msg.value);
         }
+        if (id > 2) {
+            revert WrongTokenId(id);
+        }
+        if (totalSupply(id) + amount > s_maxSupply) {
+            revert SupplyLimitExceeded(s_maxSupply);
+        }
+        _mint(msg.sender, id, amount, "");
+    }
+
+    modifier onlyAllowList() {
+        require(allowList[msg.sender], "ALLOWLIST_ERROR");
+        _;
+    }
+
+    function allowListMint(
+        uint256 id,
+        uint256 amount
+    ) public payable onlyAllowList {
+        require(status == AllowListStatus.OPEN, "MINT_NOT_OPENED");
+        require(
+            msg.value == (s_allowlistMintPrice * amount),
+            "MINTPRICE_ERROR"
+        );
+
         if (id > 2) {
             revert WrongTokenId(id);
         }
@@ -73,5 +149,11 @@ contract MyToken is ERC1155, Ownable, Pausable, ERC1155Supply {
             string(
                 abi.encodePacked(super.uri(_id), Strings.toString(_id), ".json")
             );
+    }
+
+    function withdraw() public onlyOwner {
+        uint256 balance = address(this).balance;
+        (bool sent, ) = payable(owner()).call{value: balance}("");
+        require(sent, "TRANSFER_FAILED");
     }
 }
