@@ -22,4 +22,11 @@ describe("MyToken", function () {
       })
     ).to.be.revertedWithCustomError(Token, "SupplyLimitExceeded"); // reverting with custom error
   });
+
+  it("should return the right uri", async function () {
+    const expectedURI =
+      "ipfs://Qmaa6TuP2s9pSKczHF4rwWhTKUdygrrDs8RmYYqCjP3Hye/1.json";
+    const result = await Token.uri(1);
+    assert.equal(expectedURI, result);
+  });
 });
